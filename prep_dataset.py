@@ -44,7 +44,7 @@ def transcribe(file_paths):
             transcript = result['text']
 
             # Write the result in the desired format
-            train_file.write(f"{folder_name}\{file_name}|{transcript}\n")
+            train_file.write(f"outputs/{folder_name}/{file_name}|{transcript}\n")
 
     print("Transcription complete!")
 
