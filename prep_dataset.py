@@ -2,6 +2,7 @@ import os
 import whisper
 from pydub import AudioSegment, silence
 from datetime import datetime
+from tqdm import tqdm
 
 # Initialize the whisper model
 #whisper_model = "base"
@@ -15,6 +16,15 @@ if not os.path.exists(input):
     print(f"'{input}' directory does not exist.")
     exit()
 
+def sort_file_by_line_length(filename):
+    with open(filename, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+
+    # Sort the lines by their length
+    lines.sort(key=len)
+
+    with open("sorted_"+filename, 'w', encoding='utf-8') as file:
+        file.writelines(lines)
 
 def transcribe(file_paths):
     global timestamp
@@ -24,7 +34,7 @@ def transcribe(file_paths):
     
     # Open train.txt for writing
     with open(train_filename, "w", encoding='utf-8') as train_file:
-        for file_path in file_paths:
+        for file_path in tqdm(file_paths, desc="Transcribing"):
             # Extract folder name and file name
             folder_name = os.path.basename(os.path.dirname(file_path))
             file_name = os.path.basename(file_path)
@@ -38,7 +48,7 @@ def transcribe(file_paths):
 
     print("Transcription complete!")
 
-def segment_audio(input_file, silence_thresh=-40, min_silence_len=400, min_chunk_len=4000, max_chunk_len=10000, padding=500):
+def segment_audio(input_file, silence_thresh=-40, min_silence_len=400, min_chunk_len=4000, max_chunk_len=8000, padding=500):
     
     #---------------------------------------------------------------------------------
     # silence_thresh = the silence threshold in dBFS. The default is -40 dBFS.
@@ -72,7 +82,7 @@ def segment_audio(input_file, silence_thresh=-40, min_silence_len=400, min_chunk
 
     # Filter and export chunks
     os.makedirs(output_folder, exist_ok=True)
-    for i, chunk in enumerate(chunks, start=1): # Start numbering from 1
+    for i, chunk in enumerate(tqdm(chunks, desc="Segmenting"), start=1): # Start numbering from 1
         chunk_length = len(chunk)
         if min_chunk_len <= chunk_length <= max_chunk_len:
             # Add padding
@@ -88,6 +98,11 @@ def segment_audio(input_file, silence_thresh=-40, min_silence_len=400, min_chunk
     
     return file_paths
 
+# Segment audio file
 file_paths = segment_audio(input)
-print(file_paths)
+
+# Transcribe files
 transcribe(file_paths)
+
+# Create a sorted version of the train text file
+sort_file_by_line_length(f"train_{timestamp}.txt")
